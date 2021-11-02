@@ -1,17 +1,34 @@
 ---
-title: "Title Goes Here"
+title: "Stickleback: a machine learning pipeline for detecting behavioral events in bio-logging data"
 author:
-  - Myfirstname Mylastname:
-      email: fl@oneplace.edu
-      institute: [UofO]
+  - Max Czapanskiy:
+      email: maxczapanskiy@gmail.com
+      institute: [SU]
       correspondence: true
-  - Yourfirstname Yourlastname:
+  - Salma Abdel-Raheem:
       email: fl@another.edu
-      institute: [UofA]
+      institute: [WM]
+      correspondence: false
+  - Ariana Mann:
+      email: ajmann@stanford.edu
+      institute: [SU]
+      correspondence: false
+  - Nicole Nova:
+      email: nicole.nova@stanford.edu
+      institute: [SU]
+      correspondence: false
+  - Shirel Kahane-Rapport:
+      email: skahane-rapport@fullerton.edu
+      institute: [CSUF]
+      correspondence: false
+  - Jeremy Goldbogen:
+      email: jergold@stanford.edu
+      institute: [SU]
       correspondence: false
 institute:
-  - UofO: University of One Place
-  - UofA: University of Another Place
+  - SU: Stanford University
+  - WM: Whale Museum
+  - CSUF: CSU Fullerton
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: 
     bookdown::word_document2:
@@ -22,13 +39,12 @@ output:
       - --lua-filter=../templates/author-info-blocks.lua
       - --lua-filter=../templates/pagebreak.lua
 bibliography: references.bib
-csl: "../templates/journal-of-archaeological-science.csl" # Insert path for the bib-style
+zotero: stickleback
+csl: "../templates/methods-in-ecology-and-evolution.csl" # Insert path for the bib-style
 abstract: |
   Text of abstract
 keywords: |
   keyword 1; keyword 2; keyword 3
-highlights: |
-  These are the highlights. 
 ---
 
 <!-- This is the format for text comments that will be ignored during renderings. Do not put R code in these comments because it will not be ignored. -->
@@ -36,8 +52,6 @@ highlights: |
 <!-- With the following code you can access and display values from the yml header above. -->
 
 Keywords: `r rmarkdown::metadata$keywords`
-
-Highlights: `r rmarkdown::metadata$highlights`
 
 <!-- The following code chunk defines some general settings how code chunks should behave. -->
 
@@ -57,54 +71,48 @@ knitr::opts_chunk$set(
 
 # Introduction
 
-Here is a citation [@Marwick2017]
+> It is... the experience of every good naturalist that the longer one studies a species, the more adaptive aspects of its behaviour one becomes aware of. The phenomena are countless, the field is practically unexplored, and yet without exploring it systematically we cannot hope to understand how behaviour helps animals to survive. [@tinbergen1963, p. 421]
 
-# Background
+High-resolution, multi-sensor bio-loggers push the limits of observable animal behavior, enabling biologists to pursue questions in new environments and spatio-temporal scales [@wilson2014; @williams2020]. While direct observation remains a powerful tool in ethology, new classes of animal-borne sensors, from inertial measurement units (IMUs) [@noda2014] to video cameras [@nakamura2015], can capture year-round animal behavior [@chimienti2021] in natural settings as remote as kilometers below [@shearer2019] and above the ocean [@weimerskirch2003]. Early bio-loggers collected perhaps a single data point, such as the dive duration of a seal [@williams2021]. Modern bio-loggers now collect vastly more complex data, with sample rates on the order of 10s to 1000s Hz, from multiple sensors, simultaneously. As the data revolution created new research opportunities, it also introduced new challenges for behavioral description. Researchers have relied on direct observation to understand the biological significance of complex animal behaviors, such as territory defense by sticklebacks [@tinbergen1951], social cohesion in marine mammals [@weinrich1991], and group hunting by lions [@stander1992]. But identification of even simple behaviors in bio-logging data remains an active area of research [@williams2017].
 
-# Methods
+Fine-scale behaviors on the order of seconds often hold biological significance disproportionate to their brief duration. Such behaviors, which can be detected with bio-loggers, have allowed biologists to pursue key questions related to a behavior's mechanisms and current utility, and its effects on an organism's evolutionary history and development [@bateson2013]. For instance, consider the unique lunge-feeding behavior of rorqual whales (family Balaenopteridae) [@goldbogen2017]. The combination of IMUs with video cameras revealed this behavior's mechanisms [@cade2016; @kahane-rapport2020], its current utility in terms of energetic efficiency [@potvin2021], and why lunge-feeding whales evolved into the largest animals in the history of life on earth [@goldbogen2019]. In another study, researchers deployed acoustic biologgers to track the development of sperm whales' (*Physeter macrocephalus*) complex social behaviors and discovered that, unlike most terrestrial species, the ontogeny of sperm whale social behavior follows locomotor development [@tønnesen2018]. In addition to fundamental biological questions, fine-scale behaviors detected using bio-loggers have also been used to address applied conservation issues, such as the susceptibility of endangered species to climate change [@pagano2018]. Other applications include theoretical population biology [@wilson2018], natural history of cryptic predators [@studd2021], integrative physiology [@nakamura2015], and biomechanics [@sato2008].
+
+Unlike behavioral state or mode classification, which typically relies on unsupervised learning methods (e.g., hidden markov models; @mcclintock2018; @leos-barajas2017), detection of discrete behaviors in bio-logging data is typically treated as a supervised learning problem [@chakravarty2020; @wilson2018]. Labeled behavior data for model training may be generated from animal-borne cameras [@watanabe2013], direct observation of captive animals [@pagano2017], or expert interpretation of sensor data [@gallon2013]. Modeling approaches include manually parameterized decision trees [@allen2016; @lagarde2008], signal processing [@sweeney2019], and machine learning algorithms like K-nearest neighbor [@bidder2020] and random forests [@pagano2017]. More recent methods combine multiple algorithms in hybrid models. Seek-and-learn, for example, first uses signal processing to identify behavior candidates, then refines predictions with a hierarchy of logistic regressions [@chakravarty2020]. Though bio-logging data are fundamentally time series, current machine learning approaches apply algorithms designed for tabular data. Discrete behaviors must therefore be represented as statistical summaries over short time windows; such as the mean, range, and standard deviation of sensor signals (and/or derived quantities e.g., dynamic body acceleration) [@pagano2017; @bidder2020]. These whole-series summaries lose the information contained in the order of the time series, which is why the Lowest Common Denominator (LoCoD) method uses a sequence of base elements (e.g., a step) as building blocks for matching more complex behaviors (e.g., walking) [@wilson2018].. LoCoD models are an improvement on earlier methods because they embrace, rather than erase, the temporal nature of behavior. However, they require substantial expertise and time to implement, and at present possess limited generalizability.
+
+Time series classification (TSC) has been of great interest to data mining research, independent of animal behavior and bio-logging [@keogh2003]. Dozens of new algorithms have been published in recent years [@bagnall2017; @ruiz2021], fueled by a publicly available, standardized library of labeled time series [@UCRArchive], and made available to the broader scientific community through the `sktime` Python package [@löning2019]. Particularly relevant to the detection of animal behavior are interval-based TSC algorithms. These algorithms identify informative intervals within the larger time series using simple statistical transformations (e.g., slope and standard deviation) [@deng2013; @cabello2020; @middlehurst2020], analogous to the base elements of the LoCoD method. Consider the intervals that characterize the lunge-feeding behavior of rorquals. The animal (1) accelerates towards a prey aggregation, (2) reaching maximum speed before (3) it opens its mouth to engulf the prey, inducing a rapid deceleration, ending with (4) a prolonged low-speed period while the engulfed water is filtered through its baleen [@shadwick2019; @simon2012; @kahane-rapport2020]. In bio-logging data (a time series of speed, in this case), that sequence can be characterized as intervals with (1) a moderate positive slope (acceleration), (2) a high mean (maximum speed), (3) a steep negative slope (deceleration), and (4) a low mean (filtration). **Good place for a figure!** Interval-based TSC algorithms are apparently well suited to bio-logging data, but since behavior event detection is an *annotation* problem (finding events within a time series) rather than a *classification* problem (assigning a class to a whole time series), TSC algorithms must be adapted for this purpose.
+
+We present a method, `stickleback` (named for the classic animal behavior model organism), that trains a machine learning pipeline to detect behavioral events in bio-logging data by incorporating TSC algorithms. The pipeline is algorithm agnostic, granting researchers flexibility in choosing specific machine learning algorithms. This modular approach provides a wide range of choices from existing TSC algorithms and facilitates incorporation of future methodological advances in TSC research. Using three behaviors across two taxa as case studies, we demonstrate how to: choose a TSC algorithm, fit a behavior detection model, make predictions on novel data, and assess model accuracy. `stickleback` is available in both Python and R packages.
+
+# Materials and Methods
 
 # Results
 
-<!-- Here's some example analysis code: -->
-
-```{r get-data, eval = FALSE}
-# Note the path that we need to use to access our data files when rendering this document
-my_data <- read.csv(here::here('analysis/data/raw_data/my_csv_file.csv'))
-```
-
-```{r demo-plot, fig.cap="A plot of random numbers"}
-plot(rnorm(10))
-```
-
-Figure \@ref(fig:demo-plot) shows how we can have a caption and cross-reference for a plot
-
-```{r demo-inline-code}
-x <- round(pi, 2)
-```
-
-Here is an example of inline code `r x` in the middle of a sentence. 
-
 # Discussion
 
-# Conclusion
+# Conclusions
 
-# Acknowledgements
+# Acknowledgments
+
+# Conflict of Interest
+
+# Data Availability
 
 <!-- The following line inserts a page break  -->
 
 \newpage
 
-# References 
+# References
 
 <!-- The following line ensures the references appear here for the MS Word or HTML output files, rather than right at the end of the document (this will not work for PDF files):  -->
 
-<div id="refs"></div>
+::: {#refs}
+:::
 
 \newpage
 
 ### Colophon
 
-This report was generated on `r Sys.time()` using the following computational environment and dependencies: 
+This report was generated on `r Sys.time()` using the following computational environment and dependencies:
 
 ```{r colophon, cache = FALSE}
 # which R packages and versions?
