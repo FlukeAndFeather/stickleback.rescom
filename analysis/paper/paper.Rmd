@@ -55,7 +55,7 @@ Keywords: `r rmarkdown::metadata$keywords`
 
 <!-- The following code chunk defines some general settings how code chunks should behave. -->
 
-```{r setup, echo = FALSE}
+```{r setup, echo = FALSE, message = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
   warning = FALSE,
@@ -65,6 +65,7 @@ knitr::opts_chunk$set(
   fig.path = "../figures/",
   dpi = 300
 )
+library(tidyverse)
 ```
 
 <!-- The actual document text starts here: -->
@@ -104,7 +105,28 @@ F_1=\frac{tp}{tp+\frac{1}{2}(fp+fn)} (\#eq:f1)
 ```
 ### Boosting step
 
-The pipeline is likely to produce substantial false positives after the first pass through the local and global steps because 'event' windows represented 50% of the local step training data but are probably a much smaller fraction of the longitudinal data. Since it is impossible to know *a priori* which 'non-event' windows contain information necessary for the local model to accurately detect 'events', we use a data-driven boosting step to improve prediction accuracy. After the first iteration of the local and global steps, the windows centered on false positive predictions are added to the local step training dataset, then the local and global steps are repeated.
+The pipeline is likely to produce substantial false positives after the first pass through the local and global steps because 'event' windows represented 50% of the local step training data but are a much smaller fraction of the longitudinal data. Since it is impossible to know *a priori* which 'non-event' windows contain information necessary for the local model to accurately detect 'events', we use a data-driven boosting step to improve prediction accuracy. After the first iteration of the local and global steps, the windows centered on false positive predictions are added to the local step training dataset, then the local and global steps are repeated.
+
+## Case studies
+
+### Data
+
+*Blue whales*
+
+Two behavioral events, feeding (lunges) and breaths, were manually identified in blue whale (*Balaenoptera musculus*) bio-logging data. The bio-logging data were collected using Customized Animal Tracking Solution tags (CATS, www.cats.is) and previously described in @gough2019, @kahane-rapport2020, and @savoca2021. The tags were equipped with an IMU (tri-axial accelerometer, magnetometer, and gyroscope), depth sensor, video camera, hydrophone, and other sensors. Raw sensor data were sampled at 10 Hz (depth), 50 Hz (magnetometer, gyroscope), or 400 Hz (accelerometer), processed using a custom MATLAB toolbox (MathWorks, Inc.) [@cade2021], and downsampled to 10 Hz. Behavioral events were manually labeled by expert opinion and confirmed with audio and/or video when possible. A total of 27 tag deployments recording 324.3 hours of data were used in the case studies.
+
+*Domestic dogs?*
+
+### Applying `stickleback`
+
+We tested model accuracy using cross validation at the deployment level. After randomly dividing the deployments into three folds, each containing nine deployments, we fit a `stickleback` model to the data in one fold and made predictions on the data in the other two. So unlike k-fold cross-validation, we used a minority of the data to train the model and made predictions on the remaining majority. Table \@ref(tab:case-study-params) shows the sample sizes and parameters used for the case studies. We repeated the case studies using two TSC algorithms: supervised time series forest [STSF; @cabello2020a] with 8 trees and Arsenal [@middlehurst2021] with 500 kernels and 10 estimators. Arsenal is not an interval-based TSC algorithm (as described earlier) like STSF, but it's built from a transformation [ROCKET; @dempster2020rocket], which performs well with multivariate time series such as bio-logging data [@ruiz2021].
+
+| **Behavior (*n*)**     | **Bio-logging variables** | **`stickleback` parameters** |
+|:-----------------------|:--------------------------|:-----------------------------|
+| Lunge feeding (*3887*) | Depth, pitch, roll, speed | 20 s window, 5 s tolerance   |
+| Breathing (*14427*)    | Depth, pitch, roll, jerk  | 10 s window, 3 s tolerance   |
+
+: (\#tab:case-study-params) Parameters used in the two `stickleback` case studies.
 
 # Results
 
